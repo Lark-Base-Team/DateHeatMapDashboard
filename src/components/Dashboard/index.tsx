@@ -1,9 +1,9 @@
 import './style.css';
 import React, { useLayoutEffect, useMemo } from 'react';
-import { dashboard, bitable, DashboardState, IConfig, SourceType, IDataCondition } from "@lark-base-open/js-sdk";
+import { bitable as bitableSdk, DashboardState, IConfig, SourceType, IDataCondition, IDashboard, dashboard as dashboardSdk } from "@lark-base-open/js-sdk";
 import { Button, DatePicker, ConfigProvider, Checkbox, Row, Col, Input, Switch, Select } from '@douyinfe/semi-ui';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useConfig } from '../../hooks';
+import { useConfig, useTheme } from '../../hooks';
 import { useTranslation } from 'react-i18next';
 import { TFunction } from 'i18next/typescript/t';
 import DashboardConfig from '../DashboardConfig';
@@ -54,6 +54,7 @@ export const defaultConfig = {
     ] as any
   },
   dataConditions: {
+    baseToken: null as any,
     tableId: null as any,
     dataRange: {
       type: SourceType.ALL,
@@ -71,6 +72,7 @@ export default function Dashboard() {
 
   const { t, i18n } = useTranslation();
 
+  const [dashboard, setDashboard] = useState<IDashboard>(dashboardSdk);
   // create时的默认配置
   const [config, setConfig] = useState(defaultConfig)
 
@@ -103,7 +105,8 @@ export default function Dashboard() {
 
   }
 
-  useConfig(updateConfig)
+  useConfig(updateConfig, dashboard)
+  useTheme(dashboard);
 
   return (
     <main style={isConfig ? { backgroundColor: "var(--cbgc)" } : { borderTop: 'none', backgroundColor: "var(--cbgc)" }}>
@@ -112,12 +115,13 @@ export default function Dashboard() {
           t={t}
           config={config}
           isConfig={isConfig}
+          dashboard={dashboard}
         />
       </div>
       {
         isConfig && (
           <div className='layout-cfg'>
-            <ConfigPanel t={t} config={config} setConfig={setConfig} />
+            <ConfigPanel t={t} config={config} setConfig={setConfig} dashboard={dashboard} setDashboard={setDashboard} />
           </div>
         )
       }
@@ -130,12 +134,13 @@ interface IDashboardView {
   config: any,
   isConfig: boolean,
   t: TFunction<"translation", undefined>,
+  dashboard: IDashboard,
 }
-function _DashboardView({ config, isConfig, t }: IDashboardView) {
+function _DashboardView({ config, isConfig, t, dashboard }: IDashboardView) {
   return (
     <>
       <div className="view">
-        <DashboardView config={config} isConfig={isConfig} t={t}></DashboardView>
+        <DashboardView config={config} isConfig={isConfig} t={t} dashboard={dashboard}></DashboardView>
       </div>
     </>
   );
@@ -145,8 +150,10 @@ function ConfigPanel(props: {
   config: any,
   setConfig: any,
   t: TFunction<"translation", undefined>,
+  dashboard: IDashboard,
+  setDashboard: (dashboard: IDashboard) => void,
 }) {
-  const { config, setConfig, t } = props;
+  const { config, setConfig, t, dashboard, setDashboard } = props;  
   const configRef = useRef(null) as any;
   /**保存配置 */
   const onSaveConfig = () => {
@@ -158,7 +165,7 @@ function ConfigPanel(props: {
   return (
     <>
       <div className="layout-cfg-main">
-        <DashboardConfig config={config} setConfig={setConfig} t={t} ref={configRef}></DashboardConfig>
+        <DashboardConfig config={config} setConfig={setConfig} t={t} dashboard={dashboard} ref={configRef} setDashboard={setDashboard}></DashboardConfig>
       </div>
       <div className="layout-cfg-btn">
         <Button type='primary' theme='solid' size='default' className='confirmButton' onClick={onSaveConfig}>{t('button.confirm')}</Button>

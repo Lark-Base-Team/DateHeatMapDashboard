@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useImperativeHandle, useMemo, useState } from "react";
+import React, { useEffect, useImperativeHandle, useRef, useState } from "react";
 import "./style.css";
-import { DashboardState, FieldType, IDataRange, Rollup, SourceType, base, bitable, dashboard } from '@lark-base-open/js-sdk';
-import { Button, Checkbox, DatePicker, Input, Select, Toast } from "@douyinfe/semi-ui";
+import { DashboardState, FieldType, IDashboard, Rollup, SourceType, bridge, workspace, bitable as bitableSdk, dashboard as dashboardSdk } from '@lark-base-open/js-sdk';
+import { Checkbox, DatePicker, Input, Select, Toast } from "@douyinfe/semi-ui";
 import { defaultConfig } from "../Dashboard/index"
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { deepCopy } from '@gby/deep-copy'
+import BaseSelector from "../BaseSelector";
+import { TFunction } from "i18next";
 
 let hasError = false;
 
@@ -65,9 +67,16 @@ function ButtonSelect({ optionList, onChange, value }: any) {
   </>
 }
 
-function DashboardConfig(props: any, ref: any) {
-  const { config, setConfig, t } = props;
-  const isCreate = dashboard.state === DashboardState.Create;
+function DashboardConfig(props: { 
+  config: any, 
+  setConfig: any, 
+  t: TFunction<"translation", undefined>, 
+  dashboard: IDashboard,
+  setDashboard: (dashboard: IDashboard) => void,
+}, ref: any) {
+  const { config, setConfig, t, dashboard, setDashboard } = props;
+  const [bitable, setBitable] = useState<typeof bitableSdk | null>(bitableSdk);
+
   const { customConfig, dataConditions } = config as typeof defaultConfig;
   const setCustomConfig = (cfg: typeof customConfig) => {
     hasError = false;
@@ -108,6 +117,13 @@ function DashboardConfig(props: any, ref: any) {
 
   const [dragging, setDragging] = useState(false) as any
 
+  const [isMultipleBase, setIsMultipleBase] = useState<boolean | undefined>(
+    undefined
+  );
+
+  const baseTokenHasChanged = useRef<boolean>(false);
+  const tableHasChanged = useRef<boolean>(false);
+
   // const displayRangeOptionList = [
   //   {
   //     value: 12,
@@ -129,9 +145,64 @@ function DashboardConfig(props: any, ref: any) {
   // ]
 
   useEffect(() => {
+    (async () => {
+      const env = await bridge.getEnv();
+      setIsMultipleBase(env.needChangeBase ?? false);
+    })();
+  }, []);
+
+  useEffect(() => {
+    const getBaseToken = async () => {
+    if (!isMultipleBase || dataConditions?.baseToken) {
+      return;
+    }
+    const baseList = await workspace.getBaseList({
+      query: "",
+      page: {
+        cursor: "",
+      },
+    });
+    const initialBaseToken = baseList?.base_list?.[0]?.token || "";
+    setDataConditions({
+      ...dataConditions,
+      baseToken: initialBaseToken,
+    });
+    baseTokenHasChanged.current = true;
+  };
+
+    getBaseToken();
+  }, [isMultipleBase]);
+
+   useEffect(() => {
+    (async () => {
+      if (isMultipleBase && !dataConditions?.baseToken) {
+        setBitable(null);
+        return;
+      }
+      const realBitable = isMultipleBase
+        ? await workspace.getBitable(dataConditions.baseToken)
+        : bitableSdk;
+      setBitable(realBitable);
+    })();
+  }, [dataConditions.baseToken, isMultipleBase]);
+
+  useEffect(() => {
+    (async () => {
+      if (!isMultipleBase) {
+        return;
+      }
+      const workspaceBitable = await workspace.getBitable(
+        dataConditions.baseToken!
+      );
+      const workspaceDashboard = workspaceBitable?.dashboard || dashboardSdk;
+      setDashboard(workspaceDashboard);
+    })();
+  }, [dataConditions.baseToken, isMultipleBase]);
+
+  useEffect(() => {
     // tableList 初始化
     (async () => {
-      const tables = await bitable.base.getTableList();
+      const tables = await bitable?.base.getTableList() || [];
       const tbl = await Promise.all(
         tables.map(
           async table => {
@@ -144,14 +215,18 @@ function DashboardConfig(props: any, ref: any) {
         )
       )
       setTableList(tbl)
-      if (tbl.length > 0 && isCreate) {
+      if (tbl.length > 0 && baseTokenHasChanged.current) {
         setDataConditions({ ...dataConditions, tableId: tbl[0].value })
+        tableHasChanged.current = true;
       }
     })();
-  }, [])
+  }, [bitable])
 
   useEffect(() => {
     (async () => {
+      if (!dataConditions.tableId) {
+        return;
+      }
       const l = (await dashboard.getTableDataRange(dataConditions.tableId)).map(view => {
         if (view.type == SourceType.ALL)
           return {
@@ -166,14 +241,17 @@ function DashboardConfig(props: any, ref: any) {
         }
       })
       setViewList(l)
-      if (l.length > 0 && isCreate) {
+      if (l.length > 0 && tableHasChanged.current) {
         setDataConditions({ ...dataConditions, dataRange: l[0].view })
       }
     })()
-  }, [dataConditions.tableId])
+  }, [dataConditions.tableId, dashboard])
 
   useEffect(() => {
     (async () => {
+      if (!dataConditions.tableId) {
+        return;
+      }
       const fl = ((await dashboard.getCategories(dataConditions.tableId)).filter((v: any) => {
         return v.fieldType == FieldType.DateTime
       }).map(category => {
@@ -183,7 +261,7 @@ function DashboardConfig(props: any, ref: any) {
         }
       }))
       setFieldList(fl)
-      if (fl.length > 0 && !dataConditions.groups[0].fieldId) {
+      if (fl.length > 0) {
         setDataConditions({ ...dataConditions, groups: [{ fieldId: fl[0].value }] })
       }
       const nfl = ((await dashboard.getCategories(dataConditions.tableId)).filter((v: any) => {
@@ -195,14 +273,14 @@ function DashboardConfig(props: any, ref: any) {
         }
       }))
       setNumFieldList(nfl)
-      if (fl.length > 1 && dataConditions.series !== 'COUNTA' && !dataConditions.series[0].fieldId) {
+      if (fl.length > 1 && dataConditions.series !== 'COUNTA') {
         setDataConditions({ ...dataConditions, series: [{ ...dataConditions.series[0], fieldId: nfl[0].value }] })
       }
     })()
-  }, [dataConditions.tableId, dataConditions.series])
+  }, [dataConditions.tableId, dataConditions.series, dashboard])
 
   useEffect(() => {
-    if (dataConditions.groups[0].fieldId == dataConditions.series[0].fieldId) {
+    if (dataConditions.groups[0].fieldId && dataConditions.groups[0].fieldId == dataConditions.series[0].fieldId) {
       setDataConditions({ ...dataConditions, series: [{ ...dataConditions.series[0], fieldId: null }] })
     }
   }, [dataConditions.groups[0].fieldId])
@@ -261,8 +339,45 @@ function DashboardConfig(props: any, ref: any) {
 
   return (
     <>
+     {isMultipleBase &&
+        <BaseSelector
+          baseToken={dataConditions.baseToken}
+          onChange={(e) => { 
+            setDataConditions({ 
+              ...dataConditions, 
+              baseToken: e as string, 
+              tableId: null as any,
+              dataRange: {
+                type: SourceType.ALL,
+              } as any,
+              groups: [
+                {
+                  fieldId: null as any,
+                }
+              ],
+              series: 'COUNTA' as any
+            });
+            baseTokenHasChanged.current = true;
+          }}
+        />
+      }
       <div className="prompt">{t('prompt.dataSource')}</div>
-      <Select placeholder={t('placeholder.pleaseSelectTable')} className="select" optionList={tableList} onChange={(e) => { setDataConditions({ ...dataConditions, tableId: e as string }) }} value={dataConditions.tableId}></Select>
+      <Select placeholder={t('placeholder.pleaseSelectTable')} className="select" optionList={tableList} onChange={(e) => { 
+        setDataConditions({ 
+          ...dataConditions, 
+          tableId: e as string,
+          dataRange: {
+            type: SourceType.ALL,
+          } as any,
+          groups: [
+            {
+              fieldId: null as any,
+            }
+          ],
+          series: 'COUNTA' as any
+        }) 
+        tableHasChanged.current = true;
+        }} value={dataConditions.tableId}></Select>
 
       <div className="prompt">{t('prompt.startDate')}</div>
       <DatePicker disabledDate={(date)=>{return date!.getTime() >= new Date().getTime()}} type="month" insetInput className="select" onChange={(e) => { setCustomConfig({ ...customConfig, startDate: e }) }} value={customConfig.startDate} />
