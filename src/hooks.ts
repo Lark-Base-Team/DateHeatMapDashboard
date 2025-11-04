@@ -1,4 +1,4 @@
-import { DashboardState, ThemeModeType, bitable, dashboard } from "@lark-base-open/js-sdk";
+import { DashboardState, IDashboard, ThemeModeType } from "@lark-base-open/js-sdk";
 import React from "react";
 import { useLayoutEffect } from "react";
 
@@ -7,7 +7,7 @@ function updateTheme(theme: string) {
 }
 
 /** 跟随主题色变化 */
-export function useTheme() {
+export function useTheme(dashboard: IDashboard) {
   useLayoutEffect(() => {
     dashboard.getTheme().then((res) => {
       updateTheme(res.theme == ThemeModeType.DARK ? 'dark' : 'light');
@@ -22,7 +22,7 @@ export function useTheme() {
 }
 
 /** 初始化、更新config */
-export function useConfig(updateConfig: (data: any) => void) {
+export function useConfig(updateConfig: (data: any) => void, dashboard: IDashboard) {
 
   const isCreate = dashboard.state === DashboardState.Create
   React.useEffect(() => {
@@ -42,5 +42,5 @@ export function useConfig(updateConfig: (data: any) => void) {
     return () => {
       offConfigChange();
     }
-  }, []);
+  }, [dashboard]);
 }

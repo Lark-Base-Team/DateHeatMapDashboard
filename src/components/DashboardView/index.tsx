@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import "./style.css";
-import { bitable, dashboard } from '@lark-base-open/js-sdk';
 import { Tooltip } from "@douyinfe/semi-ui";
 import dayjs from "dayjs";
 
@@ -75,7 +74,6 @@ function handleData(data: any) {
   2024/05/07 1
   ...
   */
-  console.log(data.length);
 
   const d = {} as any
   for (let i = 1; i < data.length; i++) {
@@ -87,22 +85,24 @@ function handleData(data: any) {
       d[date] = count
     }
   }
-  console.log(d);
 
   return d
 }
 
 export function DashboardView(props: any) {
-  const { config, isConfig, t } = props;
+  const { config, isConfig, t, dashboard } = props;
   const customConfig = config.customConfig
   const dataConditions = config.dataConditions
   const { dates, firstDayIndices } = getDates(customConfig.dateRange, customConfig.startDate) as any
   const [data, setData] = useState<any>({})
   useEffect(() => {
     (async () => {
-      setData(handleData(isConfig ? (await dashboard.getPreviewData(dataConditions) as any) : (await dashboard.getData() as any)))
+      if (!dataConditions.tableId) {
+        return;
+      }
+      setData(handleData(isConfig ? (await dashboard?.getPreviewData(dataConditions) as any) : (await dashboard?.getData() as any)))
     })()
-  }, [dataConditions])
+  }, [dataConditions, dashboard])
 
 
 
