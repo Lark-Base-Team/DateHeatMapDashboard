@@ -75,6 +75,7 @@ export default function Dashboard() {
   const [dashboard, setDashboard] = useState<IDashboard>(dashboardSdk);
   // create时的默认配置
   const [config, setConfig] = useState(defaultConfig)
+  const [isGetConfigReady, setIsGetConfigReady] = useState(false)
 
   const isCreate = dashboard.state === DashboardState.Create
 
@@ -89,7 +90,8 @@ export default function Dashboard() {
 
   /** 配置用户配置 */
   const updateConfig = (res: IConfig) => {
-
+    setIsGetConfigReady(true);
+    
     if (timer.current) {
       clearTimeout(timer.current)
     }
@@ -105,7 +107,7 @@ export default function Dashboard() {
 
   }
 
-  useConfig(updateConfig, dashboard)
+  useConfig(updateConfig, dashboard, setIsGetConfigReady)
   useTheme(dashboard);
 
   return (
@@ -121,7 +123,14 @@ export default function Dashboard() {
       {
         isConfig && (
           <div className='layout-cfg'>
-            <ConfigPanel t={t} config={config} setConfig={setConfig} dashboard={dashboard} setDashboard={setDashboard} />
+            <ConfigPanel 
+              t={t} 
+              config={config} 
+              setConfig={setConfig} 
+              dashboard={dashboard} 
+              setDashboard={setDashboard} 
+              isGetConfigReady={isGetConfigReady} 
+            />
           </div>
         )
       }
@@ -152,8 +161,9 @@ function ConfigPanel(props: {
   t: TFunction<"translation", undefined>,
   dashboard: IDashboard,
   setDashboard: (dashboard: IDashboard) => void,
+  isGetConfigReady: boolean,
 }) {
-  const { config, setConfig, t, dashboard, setDashboard } = props;  
+  const { config, setConfig, t, dashboard, setDashboard, isGetConfigReady } = props;  
   const configRef = useRef(null) as any;
   /**保存配置 */
   const onSaveConfig = () => {
@@ -165,7 +175,15 @@ function ConfigPanel(props: {
   return (
     <>
       <div className="layout-cfg-main">
-        <DashboardConfig config={config} setConfig={setConfig} t={t} dashboard={dashboard} ref={configRef} setDashboard={setDashboard}></DashboardConfig>
+        <DashboardConfig 
+          config={config} 
+          setConfig={setConfig} 
+          t={t} 
+          dashboard={dashboard} 
+          ref={configRef} 
+          setDashboard={setDashboard}
+          isGetConfigReady={isGetConfigReady}
+        />
       </div>
       <div className="layout-cfg-btn">
         <Button type='primary' theme='solid' size='default' className='confirmButton' onClick={onSaveConfig}>{t('button.confirm')}</Button>

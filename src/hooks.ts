@@ -22,11 +22,16 @@ export function useTheme(dashboard: IDashboard) {
 }
 
 /** 初始化、更新config */
-export function useConfig(updateConfig: (data: any) => void, dashboard: IDashboard) {
+export function useConfig(
+  updateConfig: (data: any) => void, 
+  dashboard: IDashboard, 
+  setIsGetConfigReady: (isGetConfigReady: boolean) => void
+) {
 
   const isCreate = dashboard.state === DashboardState.Create
   React.useEffect(() => {
     if (isCreate) {
+      setIsGetConfigReady(true)
       return
     }
     // 初始化获取配置

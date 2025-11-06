@@ -73,8 +73,9 @@ function DashboardConfig(props: {
   t: TFunction<"translation", undefined>, 
   dashboard: IDashboard,
   setDashboard: (dashboard: IDashboard) => void,
+  isGetConfigReady: boolean,
 }, ref: any) {
-  const { config, setConfig, t, dashboard, setDashboard } = props;
+  const { config, setConfig, t, dashboard, setDashboard, isGetConfigReady } = props;
   const [bitable, setBitable] = useState<typeof bitableSdk | null>(bitableSdk);
 
   const { customConfig, dataConditions } = config as typeof defaultConfig;
@@ -151,13 +152,9 @@ function DashboardConfig(props: {
     })();
   }, []);
 
-  console.log('####config', config)
-
   useEffect(() => {
     const getBaseToken = async () => {
-    console.log('####isMultipleBase', isMultipleBase)
-    console.log('####dataConditions', dataConditions)
-    if (!isMultipleBase || dataConditions?.baseToken) {
+    if (!isMultipleBase || (isGetConfigReady && dataConditions?.baseToken)) {
       return;
     }
     const baseList = await workspace.getBaseList({
@@ -171,12 +168,11 @@ function DashboardConfig(props: {
       ...dataConditions,
       baseToken: initialBaseToken,
     });
-    console.log('####initialBaseToken', initialBaseToken)
     baseTokenHasChanged.current = true;
   };
 
     getBaseToken();
-  }, [isMultipleBase]);
+  }, [isMultipleBase, isGetConfigReady]);
 
    useEffect(() => {
     (async () => {
@@ -221,7 +217,6 @@ function DashboardConfig(props: {
       )
       setTableList(tbl)
       if (tbl.length > 0 && baseTokenHasChanged.current) {
-        console.log('####tableList 初始化', tbl[0])
         setDataConditions({ ...dataConditions, tableId: tbl[0].value })
         tableHasChanged.current = true;
       }
@@ -248,7 +243,6 @@ function DashboardConfig(props: {
       })
       setViewList(l)
       if (l.length > 0 && tableHasChanged.current) {
-        console.log('####getTableDataRange', l[0])
         setDataConditions({ ...dataConditions, dataRange: l[0].view })
       }
     })()
@@ -269,7 +263,6 @@ function DashboardConfig(props: {
       }))
       setFieldList(fl)
       if (fl.length > 0) {
-        console.log('####setFieldList', fl[0])
         setDataConditions({ ...dataConditions, groups: [{ fieldId: fl[0].value }] })
       }
       const nfl = ((await dashboard.getCategories(dataConditions.tableId)).filter((v: any) => {
@@ -282,7 +275,6 @@ function DashboardConfig(props: {
       }))
       setNumFieldList(nfl)
       if (fl.length > 1 && dataConditions.series !== 'COUNTA') {
-        console.log('####setNumFieldList', nfl[0])
         setDataConditions({ ...dataConditions, series: [{ ...dataConditions.series[0], fieldId: nfl[0].value }] })
       }
     })()
@@ -290,7 +282,6 @@ function DashboardConfig(props: {
 
   useEffect(() => {
     if (dataConditions.groups[0].fieldId && dataConditions.groups[0].fieldId == dataConditions.series[0].fieldId) {
-      console.log('####useEffect111')
       setDataConditions({ ...dataConditions, series: [{ ...dataConditions.series[0], fieldId: null }] })
     }
   }, [dataConditions.groups[0].fieldId])
