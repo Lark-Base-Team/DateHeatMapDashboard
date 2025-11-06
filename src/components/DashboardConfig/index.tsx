@@ -154,7 +154,7 @@ function DashboardConfig(props: {
 
   useEffect(() => {
     const getBaseToken = async () => {
-    if (!isMultipleBase || (isGetConfigReady && dataConditions?.baseToken)) {
+    if (!isGetConfigReady || !isMultipleBase || dataConditions?.baseToken) {
       return;
     }
     const baseList = await workspace.getBaseList({
