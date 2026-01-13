@@ -67,6 +67,13 @@ function ButtonSelect({ optionList, onChange, value }: any) {
   </>
 }
 
+/**
+ * Configuration component for the dashboard.
+ * Handles data source selection, field mapping, and visual customization.
+ *
+ * @param props Component properties
+ * @param ref Forwarded ref for imperative handle
+ */
 function DashboardConfig(props: { 
   config: any, 
   setConfig: any, 
@@ -79,6 +86,12 @@ function DashboardConfig(props: {
   const [bitable, setBitable] = useState<typeof bitableSdk | null>(bitableSdk);
 
   const { customConfig, dataConditions } = config as typeof defaultConfig;
+  /**
+   * Updates the custom configuration and validates heatmap color frequencies.
+   * Ensures frequencies are strictly increasing and valid numbers/strings.
+   * 
+   * @param cfg New custom configuration object
+   */
   const setCustomConfig = (cfg: typeof customConfig) => {
     hasError = false;
     for (let i = 0; i < cfg.heatmapColorList.length; i++) {
@@ -103,6 +116,11 @@ function DashboardConfig(props: {
     if (cfg !== customConfig)
       setConfig({ ...config, customConfig: cfg })
   }
+  /**
+   * Updates the data conditions configuration.
+   * 
+   * @param cfg New data conditions object
+   */
   const setDataConditions = (cfg: typeof dataConditions) => {
     if (cfg !== dataConditions)
       setConfig({ ...config, dataConditions: cfg })
@@ -281,10 +299,10 @@ function DashboardConfig(props: {
   }, [dataConditions.tableId, dataConditions.series, dashboard])
 
   useEffect(() => {
-    if (dataConditions.groups[0].fieldId && dataConditions.groups[0].fieldId == dataConditions.series[0].fieldId) {
+    if (dataConditions.groups?.[0]?.fieldId && dataConditions.groups[0].fieldId == dataConditions.series?.[0]?.fieldId) {
       setDataConditions({ ...dataConditions, series: [{ ...dataConditions.series[0], fieldId: null }] })
     }
-  }, [dataConditions.groups[0].fieldId])
+  }, [dataConditions.groups?.[0]?.fieldId])
 
   useImperativeHandle(ref, () => ({
     handleSetConfig() {
@@ -296,7 +314,7 @@ function DashboardConfig(props: {
         })
         return false
       }
-      if (!(dataConditions.tableId && (dataConditions.dataRange.viewId || dataConditions.dataRange.type == 'ALL') && dataConditions.groups[0].fieldId)) {
+      if (!(dataConditions.tableId && (dataConditions.dataRange.viewId || dataConditions.dataRange.type == 'ALL') && dataConditions.groups?.[0]?.fieldId)) {
         Toast.warning({
           content: t('error.text2'),
           duration: 3,
@@ -387,7 +405,7 @@ function DashboardConfig(props: {
       <Select placeholder={t('placeholder.pleaseSelectView')} className="select" optionList={viewList} onSelect={(v, option) => { setDataConditions({ ...dataConditions, dataRange: option.view }) }} value={viewList.length ? (dataConditions.dataRange.type == 'ALL' ? 'all' : dataConditions.dataRange.viewId) : null}></Select>
 
       <div className="prompt">{t('prompt.dateField')}</div>
-      <Select placeholder={t('placeholder.pleaseSelectDateField')} className="select" optionList={fieldList} onChange={(e) => { setDataConditions({ ...dataConditions, groups: dataConditions.groups.map((v, i) => { if (i == 0) return { ...v, fieldId: e }; return v }) }) }} value={dataConditions.groups[0].fieldId}></Select>
+      <Select placeholder={t('placeholder.pleaseSelectDateField')} className="select" optionList={fieldList} onChange={(e) => { setDataConditions({ ...dataConditions, groups: dataConditions.groups?.map((v, i) => { if (i == 0) return { ...v, fieldId: e }; return v }) }) }} value={dataConditions.groups?.[0]?.fieldId}></Select>
 
       <div className="prompt">{t('prompt.displayRange')}</div>
       <Select placeholder={t('placeholder.pleaseSelectDateField')} className="select" optionList={new Array(12).fill(0, 0, 12).map((e, index) =>{return {label: (index + 1).toString() + t('displayRange.months'), value: index + 1}})} onChange={(e: any) => setCustomConfig({ ...customConfig, dateRange: e })} value={customConfig.dateRange}></Select>
