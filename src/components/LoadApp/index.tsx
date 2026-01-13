@@ -1,7 +1,7 @@
 import { ReactElement, useEffect, useState } from "react"
 import { bitable } from "@lark-base-open/js-sdk"
 import './style.css'
-import '../../locales/i18n';
+import '@/locales/i18n';
 import { LocaleProvider } from '@douyinfe/semi-ui';
 import dayjs from 'dayjs';
 import zh_CN from '@douyinfe/semi-ui/lib/es/locale/source/zh_CN';

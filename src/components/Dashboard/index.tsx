@@ -3,11 +3,11 @@ import React, { useLayoutEffect, useMemo } from 'react';
 import { bitable as bitableSdk, DashboardState, IConfig, SourceType, IDataCondition, IDashboard, dashboard as dashboardSdk } from "@lark-base-open/js-sdk";
 import { Button, DatePicker, ConfigProvider, Checkbox, Row, Col, Input, Switch, Select } from '@douyinfe/semi-ui';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useConfig, useTheme } from '../../hooks';
+import { useConfig, useTheme } from '@/hooks';
 import { useTranslation } from 'react-i18next';
 import { TFunction } from 'i18next/typescript/t';
-import DashboardConfig from '../DashboardConfig';
-import { DashboardView } from '../DashboardView';
+import DashboardConfig from '@/components/DashboardConfig';
+import { DashboardView } from '@/components/DashboardView';
 
 // 默认配置
 export const defaultConfig = {

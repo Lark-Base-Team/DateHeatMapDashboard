@@ -2,10 +2,10 @@ import React, { useEffect, useImperativeHandle, useRef, useState } from "react";
 import "./style.css";
 import { DashboardState, FieldType, IDashboard, Rollup, SourceType, bridge, workspace, bitable as bitableSdk, dashboard as dashboardSdk } from '@lark-base-open/js-sdk';
 import { Checkbox, DatePicker, Input, Select, Toast } from "@douyinfe/semi-ui";
-import { defaultConfig } from "../Dashboard/index"
+import { defaultConfig } from "@/components/Dashboard/index"
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { deepCopy } from '@gby/deep-copy'
-import BaseSelector from "../BaseSelector";
+import BaseSelector from "@/components/BaseSelector";
 import { TFunction } from "i18next";
 
 let hasError = false;
